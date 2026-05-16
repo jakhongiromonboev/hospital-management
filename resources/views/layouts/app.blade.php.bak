@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', '병원 관리 시스템')</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root { --sidebar-width: 260px; --sidebar-bg: #1e293b; --sidebar-hover: #334155; }
+        body { font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; background: #f1f5f9; }
+        .sidebar {
+            position: fixed; top: 0; left: 0; width: var(--sidebar-width);
+            height: 100vh; background: var(--sidebar-bg); color: #fff;
+            z-index: 1000; overflow-y: auto;
+        }
+        .sidebar .brand {
+            padding: 1.25rem 1.5rem; font-size: 1.25rem; font-weight: 700;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar .brand i { font-size: 1.5rem; color: #60a5fa; }
+        .sidebar .nav-link {
+            color: #cbd5e1; padding: 0.75rem 1.5rem; display: flex;
+            align-items: center; gap: 12px; font-size: 0.925rem;
+            border-left: 3px solid transparent; transition: all 0.2s;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #fff; background: var(--sidebar-hover); border-left-color: #60a5fa;
+        }
+        .sidebar .nav-link i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .main-content { margin-left: var(--sidebar-width); min-height: 100vh; }
+        .topbar {
+            background: #fff; padding: 1rem 2rem; border-bottom: 1px solid #e2e8f0;
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; z-index: 999;
+        }
+        .topbar h4 { margin: 0; font-weight: 600; color: #1e293b; }
+        .content-area { padding: 2rem; }
+        .stat-card {
+            background: #fff; border-radius: 12px; padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card .icon {
+            width: 48px; height: 48px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 1.25rem;
+        }
+        .stat-card .value { font-size: 1.75rem; font-weight: 700; color: #1e293b; }
+        .stat-card .label { font-size: 0.85rem; color: #64748b; }
+        .card { border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .card-header { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; }
+        .table th { font-weight: 600; color: #475569; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .badge-pending { background: #fef3c7; color: #92400e; }
+        .badge-confirmed { background: #dbeafe; color: #1e40af; }
+        .badge-completed { background: #d1fae5; color: #065f46; }
+        .badge-cancelled { background: #fee2e2; color: #991b1b; }
+        .badge-paid { background: #d1fae5; color: #065f46; }
+        .badge-failed { background: #fee2e2; color: #991b1b; }
+
+        /* Compact stat cards */
+        .stat-mini {
+            background: #fff; border-radius: 10px; padding: 12px 10px;
+            text-align: center; border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06); transition: transform 0.2s;
+        }
+        .stat-mini:hover { transform: translateY(-2px); }
+        .stat-mini .sm-icon {
+            width: 36px; height: 36px; border-radius: 10px; margin: 0 auto 6px;
+            display: flex; align-items: center; justify-content: center; font-size: 1rem;
+        }
+        .stat-mini .sm-val { font-size: 1.3rem; font-weight: 700; color: #1e293b; line-height: 1.2; }
+        .stat-mini .sm-lbl { font-size: 0.7rem; color: #94a3b8; margin-top: 2px; }
+        /* Tables responsive */
+        .table-responsive-custom { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table { white-space: nowrap; }
+
+        /* ─── Tablet ─── */
+        @media (max-width: 991px) {
+            .stat-card .value { font-size: 1.4rem; }
+            .stat-card { padding: 1rem; }
+            .content-area { padding: 1.25rem; }
+        }
+
+        /* ─── Mobile ─── */
+        @media (max-width: 768px) {
+            .sidebar {
+                margin-left: calc(-1 * var(--sidebar-width));
+                transition: margin-left 0.3s ease;
+            }
+            .sidebar.show { margin-left: 0; }
+            .sidebar-overlay {
+                position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+                z-index: 999; display: none;
+            }
+            .sidebar-overlay.show { display: block; }
+            .main-content { margin-left: 0; }
+            .topbar { padding: 0.75rem 1rem; }
+            .topbar h4 { font-size: 1rem; }
+            .topbar .text-muted { display: none; }
+            .content-area { padding: 1rem; }
+            .stat-card { padding: 0.875rem; }
+            .stat-card .value { font-size: 1.25rem; }
+            .stat-card .label { font-size: 0.75rem; }
+            .stat-card .icon { width: 38px; height: 38px; font-size: 1rem; }
+            .card-header { padding: 0.625rem 1rem; font-size: 0.9rem; }
+            .table th, .table td { padding: 0.5rem 0.625rem; font-size: 0.8rem; }
+            .btn-sm { font-size: 0.75rem; padding: 0.25rem 0.5rem; }
+            h5 { font-size: 1rem; }
+        }
+
+        /* ─── Small phones ─── */
+        @media (max-width: 480px) {
+            .content-area { padding: 0.75rem; }
+            .stat-card .value { font-size: 1.1rem; }
+            .stat-card .icon { width: 34px; height: 34px; font-size: 0.9rem; border-radius: 8px; }
+            .stat-card { padding: 0.75rem; border-radius: 8px; }
+            .card { border-radius: 8px; }
+            .topbar h4 { font-size: 0.9rem; }
+        }
+    </style>
+    @stack('styles')
+</head>
+<body>
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            <i class="bi bi-hospital"></i>
+            <span>HMS</span>
+        </div>
+        <ul class="nav flex-column mt-2">
+            @if(auth()->user()->role === 'admin')
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}" href="{{ route('admin.dashboard') }}"><i class="bi bi-speedometer2"></i> 대시보드</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.doctors*') ? 'active' : '' }}" href="{{ route('admin.doctors') }}"><i class="bi bi-people"></i> 의사 관리</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.patients') ? 'active' : '' }}" href="{{ route('admin.patients') }}"><i class="bi bi-person-lines-fill"></i> 환자</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.appointments') ? 'active' : '' }}" href="{{ route('admin.appointments') }}"><i class="bi bi-calendar-check"></i> 예약</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.payments') ? 'active' : '' }}" href="{{ route('admin.payments') }}"><i class="bi bi-credit-card"></i> 결제</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('admin.reports') ? 'active' : '' }}" href="{{ route('admin.reports') }}"><i class="bi bi-bar-chart"></i> 보고서</a></li>
+            @elseif(auth()->user()->role === 'doctor')
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('doctor.dashboard') ? 'active' : '' }}" href="{{ route('doctor.dashboard') }}"><i class="bi bi-speedometer2"></i> 대시보드</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('doctor.appointments') ? 'active' : '' }}" href="{{ route('doctor.appointments') }}"><i class="bi bi-calendar-check"></i> 예약</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('doctor.schedule') ? 'active' : '' }}" href="{{ route('doctor.schedule') }}"><i class="bi bi-clock"></i> 진료 시간</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('doctor.patients') ? 'active' : '' }}" href="{{ route('doctor.patients') }}"><i class="bi bi-person-lines-fill"></i> 내 환자</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('doctor.prescriptions*') ? 'active' : '' }}" href="{{ route('doctor.prescriptions') }}"><i class="bi bi-file-earmark-medical"></i> 처방전</a></li>
+            @elseif(auth()->user()->role === 'patient')
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('patient.dashboard') ? 'active' : '' }}" href="{{ route('patient.dashboard') }}"><i class="bi bi-speedometer2"></i> 대시보드</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('patient.appointments*') ? 'active' : '' }}" href="{{ route('patient.appointments') }}"><i class="bi bi-calendar-check"></i> 예약</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('patient.pain-map') ? 'active' : '' }}" href="{{ route('patient.pain-map') }}"><i class="bi bi-heart-pulse"></i> 통증 지도</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('patient.prescriptions') ? 'active' : '' }}" href="{{ route('patient.prescriptions') }}"><i class="bi bi-file-earmark-medical"></i> 처방전</a></li>
+                <li class="nav-item"><a class="nav-link {{ request()->routeIs('patient.payments*') ? 'active' : '' }}" href="{{ route('patient.payments') }}"><i class="bi bi-credit-card"></i> 결제</a></li>
+            @endif
+        </ul>
+    </nav>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-link d-md-none text-dark p-0" onclick="toggleSidebar()">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+                <h4>@yield('page-title', '대시보드')</h4>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <span class="text-muted">{{ auth()->user()->name }}</span>
+                <div class="dropdown">
+                    <button class="btn btn-light btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="bi bi-person-circle"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text fw-bold">{{ auth()->user()->name }}</span></li>
+                        <li><span class="dropdown-item-text text-muted">{{ $t['role'][auth()->user()->role] ?? auth()->user()->role }}</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> 로그아웃</button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            @endif
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
+            @endif
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show">
+                    <ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+            @yield('content')
+        </div>
+    </div>
+
+    <!-- AI Chat Widget -->
+    <div id="chatWidget">
+        <div id="chatBox" class="chat-box">
+            <div class="chat-header">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="chat-avatar-sm">
+                        <i class="bi bi-robot"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold">HMS AI 어시스턴트</div>
+                        <div class="chat-status"><span class="status-dot"></span> 온라인</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-link text-white p-0" onclick="clearChat()" title="대화 지우기">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="btn btn-link text-white p-0" onclick="toggleChat()">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot-message">
+                    <div class="message-avatar"><i class="bi bi-robot"></i></div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            안녕하세요, <strong>{{ auth()->user()->name }}</strong>님! 👋<br>
+                            HMS AI 어시스턴트입니다. 무엇을 도와드릴까요?<br><br>
+                            사용 가능한 기능을 보려면 <strong>도움</strong> 또는 <strong>help</strong>를 입력하세요!
+                        </div>
+                        <div class="message-time">{{ now()->format('H:i') }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input">
+                <form id="chatForm" onsubmit="sendMessage(event)">
+                    <div class="input-group">
+                        <input type="text" id="chatInput" class="form-control" placeholder="메시지를 입력하세요..." autocomplete="off">
+                        <button type="submit" class="btn btn-primary" id="sendBtn">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <button class="chat-toggle" id="chatToggle" onclick="toggleChat()">
+            <i class="bi bi-chat-dots-fill" id="chatIcon"></i>
+            <span class="chat-badge" id="chatBadge" style="display:none">1</span>
+            <div class="pulse-ring"></div>
+        </button>
+    </div>
+
+    <style>
+        .chat-toggle {
+            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+            border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none; color: white; font-size: 1.5rem; cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102,126,234,0.4); z-index: 9999;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .chat-toggle:hover { transform: scale(1.1); box-shadow: 0 6px 30px rgba(102,126,234,0.6); }
+        .pulse-ring {
+            position: absolute; width: 60px; height: 60px; border-radius: 50%;
+            border: 3px solid rgba(102,126,234,0.6); animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.5); opacity: 0; }
+        }
+        .chat-badge {
+            position: absolute; top: -5px; right: -5px; width: 22px; height: 22px;
+            background: #ef4444; border-radius: 50%; font-size: 0.7rem;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; border: 2px solid white;
+        }
+        .chat-box {
+            position: fixed; bottom: 100px; right: 30px; width: 400px; height: 550px;
+            background: #fff; border-radius: 20px; box-shadow: 0 10px 50px rgba(0,0,0,0.15);
+            z-index: 9999; display: none; flex-direction: column; overflow: hidden;
+            animation: slideUp 0.3s ease-out;
+        }
+        .chat-box.active { display: flex; }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; padding: 16px 20px; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .chat-avatar-sm {
+            width: 36px; height: 36px; background: rgba(255,255,255,0.2);
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 1.1rem;
+        }
+        .chat-status { font-size: 0.75rem; opacity: 0.9; }
+        .status-dot {
+            display: inline-block; width: 8px; height: 8px;
+            background: #4ade80; border-radius: 50%; margin-right: 4px;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0.5; } }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            background: #f8fafc; scroll-behavior: smooth;
+        }
+        .chat-messages::-webkit-scrollbar { width: 4px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .message { display: flex; gap: 10px; margin-bottom: 16px; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message-avatar {
+            width: 32px; height: 32px; border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0;
+        }
+        .bot-message .message-avatar { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .user-message { flex-direction: row-reverse; }
+        .user-message .message-avatar { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
+        .message-bubble {
+            padding: 12px 16px; border-radius: 16px; max-width: 280px;
+            font-size: 0.9rem; line-height: 1.5; white-space: pre-line;
+        }
+        .bot-message .message-bubble {
+            background: white; color: #334155;
+            border: 1px solid #e2e8f0; border-top-left-radius: 4px;
+        }
+        .user-message .message-bubble {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white; border-top-right-radius: 4px;
+        }
+        .user-message .message-content { display: flex; flex-direction: column; align-items: flex-end; }
+        .message-time { font-size: 0.7rem; color: #94a3b8; margin-top: 4px; }
+        .message-bubble strong { font-weight: 600; }
+        .chat-input { padding: 12px 16px 16px; background: white; border-top: 1px solid #e2e8f0; }
+        .chat-input form { margin: 0; }
+        .chat-input .input-group {
+            display: flex; align-items: center; gap: 6px;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 26px;
+            padding: 4px 4px 4px 18px;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            flex-wrap: nowrap;
+        }
+        .chat-input .input-group:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+            background: white;
+        }
+        .chat-input .form-control {
+            border: none !important; background: transparent !important;
+            padding: 8px 0 !important; font-size: 0.9rem; outline: none; box-shadow: none !important;
+            flex: 1 1 auto; min-width: 0; border-radius: 0 !important;
+        }
+        .chat-input .form-control:focus { border: none !important; box-shadow: none !important; }
+        .chat-input .btn {
+            border-radius: 50% !important; width: 38px; height: 38px; padding: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #667eea, #764ba2); border: none;
+            color: white; flex-shrink: 0;
+            transition: transform 0.15s, opacity 0.15s;
+        }
+        .chat-input .btn:hover { transform: scale(1.06); }
+        .chat-input .btn:disabled { opacity: 0.5; transform: none; cursor: not-allowed; }
+        .typing-indicator { display: flex; gap: 4px; padding: 12px 16px; }
+        .typing-dot {
+            width: 8px; height: 8px; background: #94a3b8; border-radius: 50%;
+            animation: typingBounce 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typingBounce {
+            0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+        @media (max-width: 500px) {
+            .chat-box { width: calc(100vw - 20px); right: 10px; bottom: 80px; height: 70vh; }
+            .chat-toggle { bottom: 15px; right: 15px; }
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Sidebar toggle
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('show');
+            document.getElementById('sidebarOverlay').classList.toggle('show');
+        }
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('show');
+            document.getElementById('sidebarOverlay').classList.remove('show');
+        }
+        // Close sidebar when nav link clicked on mobile
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            link.addEventListener('click', () => { if (window.innerWidth <= 768) closeSidebar(); });
+        });
+        // Make tables responsive
+        document.querySelectorAll('.card-body > .table, .card-body.p-0 > .table').forEach(table => {
+            if (!table.parentElement.classList.contains('table-responsive')) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'table-responsive';
+                table.parentNode.insertBefore(wrapper, table);
+                wrapper.appendChild(table);
+            }
+        });
+    </script>
+    <script>
+        let chatOpen = false;
+
+        function toggleChat() {
+            chatOpen = !chatOpen;
+            document.getElementById('chatBox').classList.toggle('active', chatOpen);
+            document.getElementById('chatBadge').style.display = 'none';
+            if (chatOpen) {
+                document.getElementById('chatInput').focus();
+                const msgs = document.getElementById('chatMessages');
+                msgs.scrollTop = msgs.scrollHeight;
+            }
+        }
+
+        function sendMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            appendMessage(message, 'user');
+            input.value = '';
+            input.disabled = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            showTyping();
+
+            fetch('{{ route("chat.send") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ message })
+            })
+            .then(r => r.json())
+            .then(data => {
+                removeTyping();
+                appendMessage(data.reply, 'bot', data.timestamp);
+            })
+            .catch(() => {
+                removeTyping();
+                appendMessage('문제가 발생했습니다. 다시 시도해 주세요.', 'bot');
+            })
+            .finally(() => {
+                input.disabled = false;
+                document.getElementById('sendBtn').disabled = false;
+                input.focus();
+            });
+        }
+
+        function appendMessage(text, type, time) {
+            const msgs = document.getElementById('chatMessages');
+            const timeStr = time || new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+            // Convert **bold** to <strong>
+            let html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Convert \n to <br>
+            html = html.replace(/\n/g, '<br>');
+
+            const icon = type === 'bot' ? 'bi-robot' : 'bi-person-fill';
+            const div = document.createElement('div');
+            div.className = `message ${type}-message`;
+            div.innerHTML = `
+                <div class="message-avatar"><i class="bi ${icon}"></i></div>
+                <div class="message-content">
+                    <div class="message-bubble">${html}</div>
+                    <div class="message-time">${timeStr}</div>
+                </div>`;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+
+            if (!chatOpen && type === 'bot') {
+                document.getElementById('chatBadge').style.display = 'flex';
+            }
+        }
+
+        function showTyping() {
+            const msgs = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.className = 'message bot-message';
+            div.id = 'typingIndicator';
+            div.innerHTML = `
+                <div class="message-avatar"><i class="bi bi-robot"></i></div>
+                <div class="message-content">
+                    <div class="message-bubble">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>`;
+            msgs.appendChild(div);
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+
+        function removeTyping() {
+            const el = document.getElementById('typingIndicator');
+            if (el) el.remove();
+        }
+
+        function clearChat() {
+            if (!confirm('대화 기록을 모두 지울까요?')) return;
+            fetch('{{ route("chat.clear") }}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+            });
+            const msgs = document.getElementById('chatMessages');
+            msgs.innerHTML = `
+                <div class="message bot-message">
+                    <div class="message-avatar"><i class="bi bi-robot"></i></div>
+                    <div class="message-content">
+                        <div class="message-bubble">
+                            대화가 지워졌습니다. 🧹 무엇을 도와드릴까요?
+                        </div>
+                        <div class="message-time">${new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true })}</div>
+                    </div>
+                </div>`;
+        }
+
+        // Keyboard shortcut: Ctrl+Shift+K to toggle chat
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'K') {
+                e.preventDefault();
+                toggleChat();
+            }
+        });
+    </script>
+    @stack('scripts')
+</body>
+</html>
