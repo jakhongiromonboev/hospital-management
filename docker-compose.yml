@@ -1,0 +1,33 @@
+services:
+  hms-app:
+    container_name: hms-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    env_file:
+      - .env
+    networks:
+      - hms-network
+
+  hms-web:
+    container_name: hms-web
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "${HMS_HOST_PORT:-9000}:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - hms-app
+    networks:
+      - hms-network
+
+networks:
+  hms-network:
+    name: hms-network
+    driver: bridge
