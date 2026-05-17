@@ -24,9 +24,9 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ], [
-            'email.required' => '이메일을 입력해 주세요.',
-            'email.email' => '올바른 이메일 형식이 아닙니다.',
-            'password.required' => '비밀번호를 입력해 주세요.',
+            'email.required' => __('auth.validation.email_required'),
+            'email.email' => __('auth.validation.email_format'),
+            'password.required' => __('auth.validation.password_required'),
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
@@ -35,7 +35,7 @@ class AuthController extends Controller
         }
 
         return back()->withErrors([
-            'email' => '이메일 또는 비밀번호가 올바르지 않습니다.',
+            'email' => __('auth.validation.credentials_invalid'),
         ])->onlyInput('email');
     }
 
@@ -60,13 +60,13 @@ class AuthController extends Controller
             'blood_group' => 'nullable|string',
             'address' => 'nullable|string',
         ], [
-            'name.required' => '이름을 입력해 주세요.',
-            'email.required' => '이메일을 입력해 주세요.',
-            'email.email' => '올바른 이메일 형식이 아닙니다.',
-            'email.unique' => '이미 사용 중인 이메일입니다.',
-            'password.required' => '비밀번호를 입력해 주세요.',
-            'password.min' => '비밀번호는 최소 8자 이상이어야 합니다.',
-            'password.confirmed' => '비밀번호 확인이 일치하지 않습니다.',
+            'name.required' => __('auth.validation.name_required'),
+            'email.required' => __('auth.validation.email_required'),
+            'email.email' => __('auth.validation.email_format'),
+            'email.unique' => __('auth.validation.email_taken'),
+            'password.required' => __('auth.validation.password_required'),
+            'password.min' => __('auth.validation.password_min'),
+            'password.confirmed' => __('auth.validation.password_confirmed'),
         ]);
 
         $user = User::create([

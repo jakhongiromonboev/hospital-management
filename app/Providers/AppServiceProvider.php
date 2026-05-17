@@ -18,8 +18,9 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
-        Carbon::setLocale(config('app.locale'));
-
-        View::share('t', config('labels'));
+        View::composer('*', function ($view) {
+            Carbon::setLocale(app()->getLocale());
+            $view->with('t', trans('labels'));
+        });
     }
 }

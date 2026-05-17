@@ -24,6 +24,9 @@ return [
         'doctor' => 'Doctor',
         'patient' => 'Patient',
     ],
+    'flash' => [
+        'appointment_status_updated' => 'Appointment status changed to ":status".',
+    ],
     'chat' => [
         'title' => 'HMS AI Assistant',
         'online' => 'Online',

@@ -73,10 +73,9 @@ class DoctorController extends Controller
             ]);
         }
 
-        $labels = config('labels.appointment_status');
-        $statusLabel = $labels[$request->status] ?? $request->status;
+        $statusLabel = trans('labels.appointment_status.' . $request->status);
 
-        return redirect()->back()->with('success', '예약 상태가 「' . $statusLabel . '」(으)로 변경되었습니다.');
+        return redirect()->back()->with('success', __('messages.flash.appointment_status_updated', ['status' => $statusLabel]));
     }
 
     public function patients()

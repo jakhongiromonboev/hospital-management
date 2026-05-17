@@ -24,6 +24,9 @@ return [
         'doctor' => '의사',
         'patient' => '환자',
     ],
+    'flash' => [
+        'appointment_status_updated' => '예약 상태가 「:status」(으)로 변경되었습니다.',
+    ],
     'chat' => [
         'title' => 'HMS AI 어시스턴트',
         'online' => '온라인',

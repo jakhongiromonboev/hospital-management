@@ -1,8 +1,5 @@
 <?php
 
-/**
- * 한국어 UI 라벨 (Hospital Management System)
- */
 return [
     'appointment_status' => [
         'pending' => '대기',
